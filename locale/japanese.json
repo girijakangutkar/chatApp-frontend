@@ -1,0 +1,44 @@
+{
+  "1-0-4": "一-零-四",
+  "screen": {
+    "chats": "会話",
+    "directory": "ディレクトリ",
+    "user": "利用者",
+    "translate": "翻訳",
+    "home": "家",
+    "settings": "設定",
+    "profile": "プロフィール",
+    "search": "捜索",
+    "back": "戻る",
+    "next": "次に",
+    "save": "セーブ",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "language": "言語"
+  },
+  "auth": {
+    "signIn": "サインイン",
+    "signUp": "サインアップ",
+    "logOut": "ログアウト",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "email": "電子メール"
+  },
+  "errors": {
+    "required": "このフィールドは必須です",
+    "invalidEmail": "メールアドレスが無効です",
+    "passwordMismatch": "パスワードが一致しません"
+  },
+  "welcome": {
+    "title": "私たちのアプリへようこそ",
+    "message": "私たちのアプリケーションをご利用いただきありがとうございます!"
+  },
+  "page": {
+    "translate": "翻訳",
+    "appVersion": "アプリのバージョン",
+    "targetLanguage": "目標言語",
+    "appLanguage": "アプリの言語",
+    "chatToSpeech": "チャットからスピーチへ"
+  }
+}

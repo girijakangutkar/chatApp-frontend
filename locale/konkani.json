@@ -1,0 +1,44 @@
+{
+  "1-0-4": "१-०-४",
+  "screen": {
+    "chats": "संभाषण",
+    "directory": "निर्देशिका",
+    "user": "उपेगकर्ता",
+    "translate": "अणकार",
+    "home": "घर",
+    "settings": "सेटिंग्स",
+    "profile": "प्रोफायल",
+    "search": "सोद",
+    "back": "परत",
+    "next": "फुडें",
+    "save": "सांबाळ",
+    "cancel": "रद्द करचें",
+    "delete": "काड",
+    "edit": "संपादित कर",
+    "language": "भास"
+  },
+  "auth": {
+    "signIn": "साइन इन कर",
+    "signUp": "साइन अप कर",
+    "logOut": "लॉग आउट",
+    "username": "उपेगकर्तानांव",
+    "password": "पासवर्ड",
+    "email": "ईमेल"
+  },
+  "errors": {
+    "required": "हें क्षेत्र गरजेचें आसा",
+    "invalidEmail": "अवैध ईमेल पत्तो",
+    "passwordMismatch": "पासवर्ड जुळनात"
+  },
+  "welcome": {
+    "title": "आमच्या ऍपांत येवकार",
+    "message": "आमचो ऍप्लिकेशन वापरल्या खातीर उपकार!"
+  },
+  "page": {
+    "translate": "अणकार",
+    "appVersion": "ऍप ची आवृत्ती",
+    "targetLanguage": "अणकार करायची भास",
+    "appLanguage": "ऍप ची भास",
+    "chatToSpeech": "संभाषण आवाजात"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "1-0-4": "1-0-4",
+  "screen": {
+    "chats": "Chats",
+    "directory": "Directory",
+    "user": "User",
+    "settings": "Settings",
+    "Translate": "Back",
+    "next": "Next",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "language": "Language",
+    "submit": "Submit"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "logOut": "Log Out",
+    "username": "Username",
+    "password": "Password",
+    "email": "Email"
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalidEmail": "Invalid email address",
+    "passwordMismatch": "Passwords do not match"
+  },
+  "page": {
+    "translate": "Translate",
+    "appVersion": "App version",
+    "targetLanguage": "Target language",
+    "appLanguage": "App language",
+    "chatToSpeech": "Chat to speech"
+  }
+}

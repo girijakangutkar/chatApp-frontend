@@ -1,0 +1,44 @@
+{
+  "1-0-4": "१-०-४",
+  "screen": {
+    "chats": "संभाषण",
+    "directory": "निर्देशिका",
+    "user": "उपयोगकर्ता",
+    "translate": "भाषांतर",
+    "home": "मुख्यपृष्ठ",
+    "settings": "सेटिंग्ज",
+    "profile": "प्रोफाइल",
+    "search": "शोधा",
+    "back": "मागे",
+    "next": "पुढे",
+    "save": "जतन करा",
+    "cancel": "रद्द करा",
+    "delete": "हटवा",
+    "edit": "संपादित करा",
+    "language": "भाषा"
+  },
+  "auth": {
+    "signIn": "साइन इन करा",
+    "signUp": "साइन अप करा",
+    "logOut": "लॉग आउट",
+    "username": "वापरकर्तानाव",
+    "password": "पासवर्ड",
+    "email": "ईमेल"
+  },
+  "errors": {
+    "required": "हे क्षेत्र आवश्यक आहे",
+    "invalidEmail": "अवैध ईमेल पत्ता",
+    "passwordMismatch": "पासवर्ड जुळत नाही"
+  },
+  "welcome": {
+    "title": "आमच्या अ‍ॅपमध्ये आपले स्वागत आहे",
+    "message": "आमचे अ‍ॅप वापरल्याबद्दल धन्यवाद!"
+  },
+  "page": {
+    "translate": "भाषांतर",
+    "appVersion": "अ‍ॅप आवृत्ती",
+    "targetLanguage": "अनुवाद करायची भाषा",
+    "appLanguage": "अ‍ॅप ची भाषा",
+    "chatToSpeech": "संभाषण आवाजात"
+  }
+}
