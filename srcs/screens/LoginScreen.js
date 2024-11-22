@@ -26,6 +26,7 @@ export default function LoginScreen({ navigation }) {
   const recaptchaVerifier = useRef(null);
 
   const handleSendVerificationCode = async () => {
+    // console.log("Sending verification code");
     try {
       const phoneProvider = new PhoneAuthProvider(auth);
       const verificationId = await phoneProvider.verifyPhoneNumber(
@@ -41,14 +42,14 @@ export default function LoginScreen({ navigation }) {
 
   const handleVerifyVerificationCode = async () => {
     try {
-      console.log("Starting verification process");
+      // console.log("Starting verification process");
       const credential = PhoneAuthProvider.credential(
         verificationId,
         verificationCode
       );
-      console.log("Credential created");
+      // console.log("Credential created");
       const userCredential = await signInWithCredential(auth, credential);
-      console.log("User signed in");
+      // console.log("User signed in");
       const user = userCredential.user;
 
       await AsyncStorage.setItem("userPhoneNumber", user.phoneNumber);
@@ -58,10 +59,10 @@ export default function LoginScreen({ navigation }) {
       });
 
       if (response.data.userExists) {
-        console.log("Existing user");
+        // console.log("Existing user");
         navigation.replace("Main");
       } else {
-        console.log("New user");
+        // console.log("New user");
         navigation.navigate("ProfileSetup", {
           phoneNumber: user.phoneNumber,
         });

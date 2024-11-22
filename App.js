@@ -14,7 +14,7 @@ import ChatRoom from "./srcs/screens/ChatRoom";
 import { Ionicons } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import UserProfileScreen from "./srcs/screens/UserProfileScreen";
+import { MenuProvider } from "react-native-popup-menu";
 import {
   TTSProvider,
   TranslationProvider,
@@ -115,7 +115,9 @@ export default function App() {
       <TTSProvider>
         <AppLangProvider>
           <TranslationProvider>
-            <AppContent user={user} />
+            <MenuProvider>
+              <AppContent user={user} />
+            </MenuProvider>
           </TranslationProvider>
         </AppLangProvider>
       </TTSProvider>
@@ -129,7 +131,7 @@ function AppContent({ user }) {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Login"
+        initialRouteName="Main"
         screenOptions={{
           headerStyle: {
             backgroundColor: themeStyles[theme].backgroundColor,
@@ -156,7 +158,6 @@ function AppContent({ user }) {
           options={{ headerShown: false }}
         />
         <Stack.Screen name="ChatRoom" component={ChatRoom} />
-        <Stack.Screen name="UserProfile" component={UserProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -11,6 +11,7 @@ import * as ImagePicker from "expo-image-picker";
 import { API_URL } from "../config";
 import Entypo from "@expo/vector-icons/Entypo";
 import { auth } from "../../firebaseConfig";
+import { theme, themeStyles } from "./ThemeContext";
 
 const ProfileSetupScreen = ({ navigation, route }) => {
   const [name, setName] = useState("");
@@ -37,47 +38,6 @@ const ProfileSetupScreen = ({ navigation, route }) => {
       setProfileImage(result.assets[0].uri);
     }
   };
-  // const handleSubmit = async () => {
-  //   try {
-  //     const currentUser = auth.currentUser;
-  //     if (!currentUser) {
-  //       throw new Error("No authenticated user found");
-  //     }
-
-  //     const formData = new FormData();
-  //     formData.append("_id", currentUser.uid);
-  //     formData.append("name", name);
-  //     formData.append("about", about);
-  //     formData.append("phoneNumber", route.params.phoneNumber);
-  //     if (profileImage) {
-  //       formData.append("profileImage", {
-  //         uri: profileImage,
-  //         type: "image/jpeg",
-  //         name: "profile.jpg",
-  //       });
-  //     }
-
-  //     const response = await fetch(`${API_URL}/update-profile`, {
-  //       method: "POST",
-  //       body: formData,
-  //     });
-
-  //     if (response.ok) {
-  //       const userData = await response.json();
-  //       console.log("User created/updated in MongoDB:", userData);
-  //       navigation.replace("Main");
-  //     } else {
-  //       const errorData = await response.json();
-  //       throw new Error(errorData.message || "Failed to update profile");
-  //     }
-  //   } catch (error) {
-  //     console.error("Profile update error:", error);
-  //     alert(
-  //       error.message ||
-  //         "An error occurred. Please check your connection and try again."
-  //     );
-  //   }
-  // };
 
   const handleSubmit = async () => {
     try {
@@ -106,8 +66,8 @@ const ProfileSetupScreen = ({ navigation, route }) => {
       });
 
       if (response.ok) {
-        const userData = await response.json();
-        console.log("User created/updated in MongoDB:", userData);
+        // const userData = await response.json();
+        // console.log("User created/updated in MongoDB:", userData);
         navigation.replace("Main");
       } else {
         const errorData = await response.json();
@@ -128,8 +88,8 @@ const ProfileSetupScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
+    <View style={[styles.container, themeStyles[theme]]}>
+      <View style={[styles.card, themeStyles[theme]]}>
         <TouchableOpacity onPress={handleImagePick} style={styles.image}>
           {!profileImage && (
             <TouchableOpacity
@@ -153,7 +113,12 @@ const ProfileSetupScreen = ({ navigation, route }) => {
               onPress={removeProfile}
               style={{ position: "absolute", zIndex: 1000 }}
             >
-              <Entypo name="circle-with-cross" size={24} color="black" />
+              <Entypo
+                name="circle-with-cross"
+                size={24}
+                color="black"
+                style={themeStyles[theme]}
+              />
             </TouchableOpacity>
           )}
         </TouchableOpacity>
@@ -236,78 +201,3 @@ const styles = StyleSheet.create({
 });
 
 export default ProfileSetupScreen;
-
-// import React, { useState } from "react";
-// import {
-//   View,
-//   TextInput,
-//   Image,
-//   StyleSheet,
-//   TouchableOpacity,
-//   Text,
-//   Alert,
-// } from "react-native";
-// import * as ImagePicker from "expo-image-picker";
-// import { API_URL } from "../config";
-// import Entypo from "@expo/vector-icons/Entypo";
-// import { auth } from "../../firebaseConfig";
-
-// const ProfileSetupScreen = ({ navigation, route }) => {
-//   const [name, setName] = useState("");
-//   const [about, setAbout] = useState("");
-//   const [profileImage, setProfileImage] = useState(null);
-
-//   const handleImagePick = async () => {
-//     // ... (keep existing image picker logic)
-//   };
-
-//   const handleSubmit = async () => {
-//     try {
-//       const currentUser = auth.currentUser;
-//       if (!currentUser) {
-//         throw new Error("No authenticated user found");
-//       }
-
-//       const formData = new FormData();
-//       formData.append("firebaseUid", currentUser.uid);
-//       formData.append("_id", currentUser.uid);
-//       formData.append("name", name);
-//       formData.append("about", about);
-//       formData.append("phoneNumber", route.params.phoneNumber);
-//       if (profileImage) {
-//         formData.append("profileImage", {
-//           uri: profileImage,
-//           type: "image/jpeg",
-//           name: "profile.jpg",
-//         });
-//       }
-
-//       const response = await fetch(`${API_URL}/update-profile`, {
-//         method: "POST",
-//         body: formData,
-//       });
-
-//       if (response.ok) {
-//         const userData = await response.json();
-//         console.log("User created/updated in MongoDB:", userData);
-//         navigation.replace("Main");
-//       } else {
-//         const errorData = await response.json();
-//         throw new Error(errorData.message || "Failed to update profile");
-//       }
-//     } catch (error) {
-//       console.error("Profile update error:", error);
-//       Alert.alert(
-//         "Profile Update Error",
-//         error.message || "An error occurred. Please check your connection and try again."
-//       );
-//     }
-//   };
-
-//   // ... (keep the rest of the component code)
-
-// };
-
-// // ... (keep the styles)
-
-// export default ProfileSetupScreen;

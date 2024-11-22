@@ -111,9 +111,8 @@ export default function SettingsScreen({ navigation }) {
           {translate("page.appLanguage")}
         </Text>
         <Picker
-          selectedValue={appLanguage}
-          style={{ height: 50, width: 150 }}
-          // style={[themeStyles[theme]]}
+          selectedValue={appLanguage || "ENGLISH"}
+          style={[styles.picker, themeStyles[theme]]}
           onValueChange={(itemValue) => handleLanguageChange(itemValue)}
         >
           {getAvailableLanguages().map((lang) => (
@@ -123,21 +122,44 @@ export default function SettingsScreen({ navigation }) {
       </View>
       <View style={styles.settingRow}>
         <Text style={[styles.texts, themeStyles[theme]]}>
-          {translate("page.targetLanguage")}
+          {translate("page.Translateto")}
         </Text>
         <Picker
           selectedValue={targetLanguage}
-          style={{ height: 50, width: 150 }}
+          style={[styles.picker, themeStyles[theme]]}
           onValueChange={(itemValue) => changeTargetLanguage(itemValue)}
         >
-          {supportedLanguages.map((lang) => (
+          {/* if(Platform.OS === 'android' && this.state.selectedIndex === -1){" "}
+          {<Picker.Item label={"CANCEL"} value={-1} />} */}
+          {/* {supportedLanguages.map((lang) => (
             <Picker.Item
               key={lang.code}
               label={lang.name}
               value={lang.code}
               style={[themeStyles[theme]]}
             />
-          ))}
+          ))} */}
+
+          {supportedLanguages.map((lang, index) => {
+            if (index === 0) {
+              return (
+                <Picker.Item
+                  key={null}
+                  label={"Off"}
+                  value={null}
+                  style={[themeStyles[theme]]}
+                />
+              );
+            }
+            return (
+              <Picker.Item
+                key={lang.code}
+                label={lang.name}
+                value={lang.code}
+                style={[themeStyles[theme]]}
+              />
+            );
+          })}
         </Picker>
       </View>
       <View style={styles.settingRow}>
@@ -151,6 +173,9 @@ export default function SettingsScreen({ navigation }) {
           thumbColor={ttsEnabled ? "#f5dd4b" : "#f4f3f4"}
         />
       </View>
+      <Text style={styles.warn}>
+        please press the speaker icon To hear out your chats in your chatroom.
+      </Text>
     </View>
   );
 }
@@ -168,6 +193,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontWeight: "bold",
   },
+  picker: {
+    height: 50,
+    width: 150,
+  },
   settingRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -178,5 +207,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 20,
+  },
+  warn: {
+    color: "black",
+    fontWeight: "bold",
+    marginTop: 30,
+    padding: 5,
+    margin: 2,
+    alignItems: "left",
+    backgroundColor: "#f5dd4b",
+    borderRadius: 10,
   },
 });

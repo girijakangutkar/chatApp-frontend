@@ -13,27 +13,39 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   ImageBackground,
   StyleSheet,
   Platform,
   Alert,
-  Modal,
 } from "react-native";
 import { io } from "socket.io-client";
 import axios from "axios";
 import { auth } from "../../firebaseConfig";
 import { format, parseISO, isSameDay } from "date-fns";
-import { API_URL, SOCKET_URL } from "../config";
+import { API_URL } from "../config";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useTheme, themeStyles } from "./ThemeContext";
 import { TTSContext, TranslationContext } from "./SettingsScreen";
 import * as Speech from "expo-speech";
-import { Picker } from "@react-native-picker/picker";
 import { translateText } from "./TranslationService";
+import { Picker } from "@react-native-picker/picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import * as Sharing from "expo-sharing";
+import * as MediaLibrary from "expo-media-library";
+import * as IntentLauncher from "expo-intent-launcher";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import Svg, { Circle } from "react-native-svg";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import {
+  Menu,
+  MenuOptions,
+  MenuOption,
+  MenuTrigger,
+} from "react-native-popup-menu";
+
+const APP_DIRECTORY = FileSystem.documentDirectory + "HowYouDoin/";
+const DOWNLOAD_TRACKING_FILE = APP_DIRECTORY + "downloaded_attachments.json";
 
 const THEMES = {
   default: {
@@ -54,36 +66,66 @@ const THEMES = {
 };
 
 export default function ChatRoom({ route, navigation }) {
-  const socket = io(SOCKET_URL);
+  const socket = io("http://192.168.1.3:3000");
   const { conversationId, chatName } = route.params;
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const flatListRef = useRef();
   const { theme } = useTheme();
-  const [attachment, setAttachment] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [currentTheme, setCurrentTheme] = useState("default");
-  const [showThemeModal, setShowThemeModal] = useState(false);
   const { ttsEnabled } = useContext(TTSContext);
   const [ttsReady, setTtsReady] = useState(false);
   const { targetLanguage } = useContext(TranslationContext);
   const [translatedMessages, setTranslatedMessages] = useState({});
+  const [attachment, setAttachment] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
+  const [downloadProgress, setDownloadProgress] = useState({});
+  const [downloadedAttachments, setDownloadedAttachments] = useState([]);
+  const [myAttachments, setMyAttachments] = useState([]);
 
   useEffect(() => {
     fetchTheme();
-    // Add a focus listener to refetch the theme when returning to the screen
+    // Add a focus list
     const unsubscribe = navigation.addListener("focus", () => {
       fetchTheme();
     });
     return unsubscribe;
   }, [fetchTheme, navigation]);
 
+  const ensureDirectoryExists = async () => {
+    try {
+      const dirInfo = await FileSystem.getInfoAsync(APP_DIRECTORY);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(APP_DIRECTORY, {
+          intermediates: true,
+        });
+      }
+
+      // Create tracking file if it doesn't exist
+      const trackingFileInfo = await FileSystem.getInfoAsync(
+        DOWNLOAD_TRACKING_FILE
+      );
+      if (!trackingFileInfo.exists) {
+        await FileSystem.writeAsStringAsync(DOWNLOAD_TRACKING_FILE, "[]");
+      }
+    } catch (error) {
+      console.error("Error ensuring directory exists:", error);
+    }
+  };
+
+  useEffect(() => {
+    ensureDirectoryExists().then(() => {
+      loadDownloadedAttachments();
+    });
+  }, []);
+
   const fetchTheme = useCallback(async () => {
     try {
       const response = await axios.get(
         `${API_URL}/user/chat-theme/${auth.currentUser.uid}/${route.params.otherUserId}`
       );
-      console.log("Fetched theme:", response.data.theme);
+      // console.log("Fetched theme:", response.data.theme);
       setCurrentTheme(response.data.theme);
     } catch (error) {
       console.error("Error fetching chat theme:", error);
@@ -98,8 +140,7 @@ export default function ChatRoom({ route, navigation }) {
         theme,
       });
       setCurrentTheme(theme);
-      console.log("theme", theme);
-      setShowThemeModal(false);
+      // console.log("theme", theme);
     } catch (error) {
       console.error("Error setting chat theme:", error);
     }
@@ -109,14 +150,46 @@ export default function ChatRoom({ route, navigation }) {
     navigation.setOptions({
       title: chatName,
       headerRight: () => (
-        <TouchableOpacity onPress={() => setShowThemeModal(true)}>
-          <FontAwesome
-            name="ellipsis-v"
-            size={24}
-            color="#000"
-            style={{ marginRight: 15 }}
-          />
-        </TouchableOpacity>
+        <Menu style={[styles.menuBox, themeStyles[theme]]}>
+          <MenuTrigger
+            style={[{ padding: 10, marginRight: 5 }, themeStyles[theme]]}
+          >
+            <FontAwesome
+              name="ellipsis-v"
+              size={24}
+              color="#000"
+              style={[
+                {
+                  marginRight: 10,
+                  alignItems: "center",
+                  justifyContent: "center",
+                },
+                themeStyles[theme],
+              ]}
+            />
+          </MenuTrigger>
+          <MenuOptions style={[themeStyles[theme]]}>
+            <MenuOption style={[themeStyles[theme]]}>
+              <View style={[styles.modalView, themeStyles[theme]]}>
+                <Text style={[themeStyles[theme]]}>Choose a theme</Text>
+                <Picker
+                  selectedValue={currentTheme}
+                  onValueChange={(theme) => handleThemeChange(theme)}
+                  style={[{ width: 150, height: 50 }, themeStyles[theme]]}
+                >
+                  {Object.keys(THEMES).map((theme) => (
+                    <Picker.Item
+                      value={theme}
+                      key={theme}
+                      label={theme}
+                      style={[themeStyles[theme]]}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </MenuOption>
+          </MenuOptions>
+        </Menu>
       ),
     });
   }, [navigation, chatName]);
@@ -129,6 +202,7 @@ export default function ChatRoom({ route, navigation }) {
         await Speech.getAvailableVoicesAsync();
         if (isMounted) {
           setTtsReady(true);
+          // console.log("Ready to speak");
         }
       } catch (err) {
         console.error("Speech initialization failed:", err);
@@ -143,7 +217,8 @@ export default function ChatRoom({ route, navigation }) {
         Speech.stop();
       }
     };
-  }, []);
+  }, [conversationId, route.params.otherUserId]);
+
   useEffect(() => {
     const translateMessages = async () => {
       const newTranslations = {};
@@ -176,23 +251,49 @@ export default function ChatRoom({ route, navigation }) {
     if (ttsEnabled && ttsReady) {
       const textToSpeak =
         translatedMessages[message._id]?.content || message.content;
+      // console.log(textToSpeak);
       Speech.speak(textToSpeak);
     }
   };
+
+  // useEffect(() => {
+  //   if (flatListRef.current) {
+  //     flatListRef.current.scrollToEnd({ animated: true });
+  //   }
+  // }, [messages]);
 
   useEffect(() => {
     socket.connect();
     socket.emit("joinRoom", conversationId);
     socket.on("newMessage", handleNewMessage);
+    socket.on("newAttachment", handleNewAttachment);
 
     fetchMessages();
+    // fetchAttachments();
 
     return () => {
       socket.off("newMessage", handleNewMessage);
+      socket.off("newAttachment", handleNewAttachment);
       socket.emit("leaveRoom", conversationId);
       socket.disconnect();
     };
-  }, [conversationId]);
+  }, [conversationId, handleNewMessage, handleNewAttachment]);
+
+  const handleNewAttachment = useCallback((attachment) => {
+    setMyAttachments((prevAttachments) => {
+      const attachmentExists = prevAttachments.some(
+        (att) => att._id === attachment._id
+      );
+      if (!attachmentExists && attachment.senderId === auth.currentUser.uid) {
+        return [...prevAttachments, attachment];
+      }
+      return prevAttachments;
+    });
+
+    if (attachment.senderId !== auth.currentUser.uid) {
+      setAttachment(attachment);
+    }
+  }, []);
 
   const handleNewMessage = useCallback((message) => {
     setMessages((prevMessages) => {
@@ -215,7 +316,27 @@ export default function ChatRoom({ route, navigation }) {
     } catch (error) {
       console.error("Error fetching messages:", error);
     }
+
+    if (flatListRef.current) {
+      flatListRef.current.scrollToEnd({ animated: true });
+    }
   };
+
+  // const fetchAttachments = async () => {
+  //   try {
+  //     const response = await axios.get(`${API_URL}/upload/${conversationId}`);
+  //     const myAttachments = response.data.filter(
+  //       (attachment) => attachment.senderId === auth.currentUser.uid
+  //     );
+  //     const otherAttachments = response.data.filter(
+  //       (attachment) => attachment.senderId !== auth.currentUser.uid
+  //     );
+  //     setMyAttachments(myAttachments);
+  //     setAttachment(otherAttachments.length > 0 ? otherAttachments[0] : null);
+  //   } catch (error) {
+  //     console.log("Error fetching attachments", error);
+  //   }
+  // };
 
   const sendMessage = async (content) => {
     if (!content.trim()) return;
@@ -249,6 +370,257 @@ export default function ChatRoom({ route, navigation }) {
     }
   };
 
+  const pickDocument = async () => {
+    if (permissionResponse.status !== "granted") {
+      await requestPermission();
+    }
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        copyToCacheDirectory: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        setAttachment(file);
+        Alert.alert(
+          "File selected",
+          `Name: ${file.name}, Size: ${file.size} bytes`
+        );
+
+        // Alert.alert(
+        //   "File selected",
+        //   `Name: ${file.name}, Size: ${file.size} bytes`,
+        //   [
+        //     {
+        //       text: "Cancel",
+        //       onPress: () => {
+        //         setAttachment(null);
+        //       },
+        //     },
+        //     {
+        //       text: "OK",
+        //       onPress: () => {
+        //         setAttachment(file);
+        //       },
+        //     },
+        //   ],
+        //   { cancelable: false }
+        // );
+      }
+    } catch (err) {
+      console.error("Error in pickDocument:", err);
+      // Alert.alert("Error", "Failed to pick document. Please try again.");
+    }
+  };
+
+  const uploadAttachment = async () => {
+    if (!attachment) return;
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri: attachment.uri,
+      type: attachment.mimeType,
+      name: attachment.name,
+    });
+    formData.append("conversationId", conversationId);
+    formData.append("senderId", auth.currentUser.uid);
+
+    try {
+      const response = await axios.post(`${API_URL}/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setUploadProgress(percentCompleted);
+        },
+      });
+
+      const newAttachment = response.data;
+
+      // Emit socket event for new attachment
+      socket.emit("sendAttachment", newAttachment);
+
+      // Update local state
+      setMyAttachments((prev) => [...prev, newAttachment]);
+      setAttachment(null);
+      setUploadProgress(0);
+
+      // Copy the file to app's directory
+      const newUri = APP_DIRECTORY + newAttachment.fileName;
+      await FileSystem.copyAsync({
+        from: attachment.uri,
+        to: newUri,
+      });
+
+      // Alert.alert("Success", "File uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading attachment:", error);
+      // Alert.alert("Error", "Failed to upload attachment. Please try again.");
+    }
+  };
+
+  const verifyFileExists = async (fileName) => {
+    try {
+      const filePath = APP_DIRECTORY + fileName;
+      const fileInfo = await FileSystem.getInfoAsync(filePath);
+
+      if (!fileInfo.exists && downloadedAttachments.includes(fileName)) {
+        // File was deleted but still marked as downloaded
+        const updatedDownloads = downloadedAttachments.filter(
+          (name) => name !== fileName
+        );
+        setDownloadedAttachments(updatedDownloads);
+        await saveDownloadedAttachments(updatedDownloads);
+        return false;
+      }
+      return fileInfo.exists;
+    } catch (error) {
+      console.error("Error verifying file:", error);
+      return false;
+    }
+  };
+
+  const downloadAttachment = async (fileUrl, fileName) => {
+    console.log(fileUrl);
+    try {
+      const downloadResumable = FileSystem.createDownloadResumable(
+        fileUrl,
+        APP_DIRECTORY + fileName,
+        {},
+        (downloadProgress) => {
+          const progress =
+            downloadProgress.totalBytesWritten /
+            downloadProgress.totalBytesExpectedToWrite;
+          setDownloadProgress((prevProgress) => ({
+            ...prevProgress,
+            [fileName]: progress,
+          }));
+        }
+      );
+
+      await downloadResumable.downloadAsync();
+
+      // Save the file to device's media library
+      if (Platform.OS === "ios") {
+        await MediaLibrary.saveToLibraryAsync(APP_DIRECTORY + fileName);
+      } else {
+        await MediaLibrary.createAssetAsync(APP_DIRECTORY + fileName);
+      }
+
+      // Update downloaded attachments list and persist it
+      const updatedDownloads = [...downloadedAttachments, fileName];
+      setDownloadedAttachments(updatedDownloads);
+      await saveDownloadedAttachments(updatedDownloads);
+
+      // Alert.alert(
+      //   "Success",
+      //   "File downloaded successfully. You can find it in your device storage."
+      // );
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      // Alert.alert("Error", "Failed to download file");
+    }
+  };
+
+  const saveDownloadedAttachments = async (attachments) => {
+    try {
+      await FileSystem.writeAsStringAsync(
+        DOWNLOAD_TRACKING_FILE,
+        JSON.stringify(attachments)
+      );
+    } catch (error) {
+      console.error("Error saving downloaded attachments:", error);
+    }
+  };
+
+  const loadDownloadedAttachments = async () => {
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(DOWNLOAD_TRACKING_FILE);
+      if (fileInfo.exists) {
+        const content = await FileSystem.readAsStringAsync(
+          DOWNLOAD_TRACKING_FILE
+        );
+        const savedAttachments = JSON.parse(content);
+        setDownloadedAttachments(savedAttachments);
+      }
+    } catch (error) {
+      console.error("Error loading downloaded attachments:", error);
+    }
+  };
+
+  const getMimeType = (extension) => {
+    const mimeTypes = {
+      txt: "text/plain",
+      pdf: "application/pdf",
+      doc: "application/msword",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      xls: "application/vnd.ms-excel",
+      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ppt: "application/vnd.ms-powerpoint",
+      pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      jpeg: "image/jpeg",
+      jpg: "image/jpeg",
+      png: "image/png",
+      gif: "image/gif",
+      mp3: "audio/mpeg",
+      mp4: "video/mp4",
+      avi: "video/x-msvideo",
+      zip: "application/zip",
+    };
+
+    return mimeTypes[extension.toLowerCase()] || "application/octet-stream";
+  };
+
+  const openAttachment = async (fileUri) => {
+    try {
+      // const fileName = fileUri.split("/").pop();
+      // const exists = await verifyFileExists(fileName);
+
+      // if (!exists) {
+      //   Alert.alert(
+      //     "File Not Found",
+      //     "The file has been deleted. Please ask them to send it again.",
+      //     [
+      //       {
+      //         text: "Send it again",
+      //         onPress: async () => {
+      //           const attachmentInfo =
+      //             attachment ||
+      //             myAttachments.find((a) => a.fileName === fileName);
+      //           if (attachmentInfo) {
+      //             await downloadAttachment(attachmentInfo.fileUrl, fileName);
+      //           }
+      //         },
+      //       },
+      //       {
+      //         text: "Cancel",
+      //         style: "cancel",
+      //       },
+      //     ]
+      //   );
+      //   return;
+      // }
+
+      if (Platform.OS === "ios") {
+        await Sharing.shareAsync(fileUri);
+      } else {
+        const fileExtension = fileUri.split(".").pop().toLowerCase();
+        const mimeType = getMimeType(fileExtension);
+        const contentUri = await FileSystem.getContentUriAsync(fileUri);
+        await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
+          data: contentUri,
+          type: mimeType,
+          flags: 1,
+        });
+      }
+    } catch (error) {
+      console.error("Error opening file:", error);
+      // Alert.alert("Error", "Failed to open attachment");
+    }
+  };
+
   const groupMessagesByDate = (messages) => {
     const groups = [];
     let currentGroup = [];
@@ -279,35 +651,6 @@ export default function ChatRoom({ route, navigation }) {
     [messages]
   );
 
-  const renderThemeModal = () => (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={showThemeModal}
-      onRequestClose={() => setShowThemeModal(false)}
-    >
-      <View style={styles.modalView}>
-        <Text style={styles.modalTitle}>Choose a theme</Text>
-
-        <Picker
-          selectedValue={currentTheme}
-          onValueChange={(theme) => handleThemeChange(theme)}
-          style={{ width: 150, height: 50 }}
-        >
-          {Object.keys(THEMES).map((theme) => (
-            <Picker.Item value={theme} key={theme} label={theme} />
-          ))}
-        </Picker>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => setShowThemeModal(false)}
-        >
-          <Text>Close</Text>
-        </TouchableOpacity>
-      </View>
-    </Modal>
-  );
-
   const renderMessageGroup = ({ item, index }) => (
     <View key={`group-${index}`}>
       <Text style={styles.dateHeader}>
@@ -319,189 +662,117 @@ export default function ChatRoom({ route, navigation }) {
     </View>
   );
 
-  const pickDocument = async () => {
-    try {
-      console.log("Starting document picker...");
-
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
-        copyToCacheDirectory: false,
-      });
-
-      console.log("Document picker result:", JSON.stringify(result, null, 2));
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const file = result.assets[0];
-        console.log("File selected successfully:", file.name);
-        setAttachment(file);
-        Alert.alert(
-          "File selected",
-          `Name: ${file.name}, Size: ${file.size} bytes`
-        );
-      } else if (result.canceled) {
-        console.log("Document picker was cancelled by the user");
-      } else {
-        console.log("No file selected");
-      }
-    } catch (err) {
-      console.error("Error in pickDocument:", err);
-      if (Platform.OS === "ios") {
-        console.log("iOS specific error info:", err.code, err.message);
-      }
-      Alert.alert("Error", "Failed to pick document. Please try again.");
-    }
-  };
-
-  // Update the uploadAttachment function to work with the new file structure
-  const uploadAttachment = async () => {
-    if (!attachment) {
-      console.log("No attachment to upload");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", {
-      uri: attachment.uri,
-      type: attachment.mimeType,
-      name: attachment.name,
-    });
-    formData.append("conversationId", conversationId);
-    formData.append("senderId", auth.currentUser.uid);
-
-    try {
-      console.log("Uploading file:", attachment.name);
-      console.log("API URL:", `${API_URL}/upload`);
-
-      const response = await axios.post(`${API_URL}/upload`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          console.log("Upload progress:", percentCompleted);
-          setUploadProgress(percentCompleted);
-        },
-        timeout: 30000, // Set a 30-second timeout
-      });
-
-      console.log("Upload response:", response.data);
-
-      const newMessage = response.data;
-      socket.emit("sendMessage", newMessage);
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
-      setAttachment(null);
-      setUploadProgress(0);
-      Alert.alert("Success", "File uploaded successfully");
-    } catch (error) {
-      console.error("Error uploading attachment:", error);
-
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.error("Server responded with error:", error.response.data);
-        console.error("Status code:", error.response.status);
-        console.error("Headers:", error.response.headers);
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.error("No response received:", error.request);
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.error("Error setting up request:", error.message);
-      }
-
-      let errorMessage = "Failed to upload attachment. ";
-      if (error.message === "Network Error") {
-        errorMessage += "Please check your internet connection and try again.";
-      } else if (error.code === "ECONNABORTED") {
-        errorMessage +=
-          "The upload timed out. Please try again with a smaller file or check your connection.";
-      } else {
-        errorMessage += "Please try again.";
-      }
-
-      Alert.alert("Error", errorMessage);
-    }
-  };
-
-  const downloadAttachment = async (fileUrl, fileName) => {
-    const downloadResumable = FileSystem.createDownloadResumable(
-      fileUrl,
-      FileSystem.documentDirectory + fileName,
-      {},
-      (downloadProgress) => {
-        const progress =
-          downloadProgress.totalBytesWritten /
-          downloadProgress.totalBytesExpectedToWrite;
-        console.log(`Downloaded: ${progress * 100}%`);
-      }
-    );
-
-    try {
-      const { uri } = await downloadResumable.downloadAsync();
-      console.log("File downloaded to:", uri);
-      Alert.alert("Success", "File downloaded successfully");
-    } catch (error) {
-      console.error("Error downloading file:", error);
-      Alert.alert("Error", "Failed to download file");
-    }
-  };
-  const renderAttachment = (item) => {
-    if (item.type === "attachment") {
-      return (
-        <View style={styles.attachmentContainer}>
-          {/* <Text style={styles.attachmentName}>{item.fileName}</Text> */}
-          <TouchableOpacity
-            style={styles.downloadButton}
-            onPress={() => downloadAttachment(item.fileUrl, item.fileName)}
-          >
-            {/*  */}
-            <MaterialCommunityIcons
-              name="download-circle-outline"
-              size={14}
-              color="#4B4F07"
-            >
-              <Text style={styles.downloadButtonText}>Download</Text>
-            </MaterialCommunityIcons>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    return null;
-  };
-
-  const renderMessage = ({ item }) => {
+  const renderMessage = ({ item, key }) => {
     const isCurrentUser = item.senderId === auth.currentUser.uid;
     const messageStyle = isCurrentUser
       ? styles.sentMessage
       : styles.receivedMessage;
 
-    let messageContent = translatedMessages[item._id]?.content || item.content;
+    const isAttachment = item.type === "attachment";
+    const setNumberOfLinesForFile = isAttachment ? 2 : null;
+
+    // Add useEffect for file verification when rendering attachment messages
+    // useEffect(() => {
+    //   if (isAttachment && !isCurrentUser) {
+    //     verifyFileExists(item.fileName);
+    //   }
+    // }, [item.fileName, isCurrentUser]);
+
+    let messageContent =
+      translatedMessages[item._id]?.content ||
+      item.content ||
+      item.type === "text";
 
     return (
       <TouchableOpacity
-        style={messageStyle}
-        onPress={() => speakMessage(item)}
+        style={[
+          messageStyle,
+          item.type === "attachment" ? styles.attachbox : null,
+        ]}
+        onPress={() => {
+          if (item.type === "attachment") {
+            if (
+              isCurrentUser ||
+              downloadedAttachments.includes(item.fileName)
+            ) {
+              openAttachment(APP_DIRECTORY + item.fileName);
+            } else {
+              downloadAttachment(item.fileUrl, item.fileName);
+            }
+          }
+          return null;
+        }}
         selectable
       >
-        <Text selectable>{messageContent}</Text>
+        <Text
+          selectable
+          numberOfLines={setNumberOfLinesForFile}
+          ellipsizeMode="middle"
+          key={item.id}
+        >
+          {item.type === "attachment" ? (
+            <>
+              <Ionicons name="document-attach" size={24} color="#888F05" />
+            </>
+          ) : null}
+          {messageContent}
+        </Text>
         {item.content !== messageContent && (
           <Text style={styles.originalText}>Original: {item.content}</Text>
         )}
-        {renderAttachment(item)}
         <View style={styles.messageFooter}>
           <Text style={styles.timeText}>
-            {format(parseISO(item.timestamp), "h:mm a")}
+            {format(parseISO(item.timestamp), "hh:mm:ss aaaa")}
           </Text>
-          {ttsEnabled && ttsReady && (
-            <FontAwesome
-              name="volume-up"
-              size={14}
-              color="#888"
-              style={styles.speakerIcon}
-            />
+          {ttsEnabled && ttsReady && item.type === "text" && (
+            <TouchableOpacity onPress={() => speakMessage(item)}>
+              <FontAwesome
+                name="volume-up"
+                size={20}
+                color="#888"
+                style={styles.speakerIcon}
+              />
+            </TouchableOpacity>
           )}
+          {!downloadedAttachments.includes(item.fileName) &&
+            !isCurrentUser &&
+            item.type === "attachment" && (
+              <TouchableOpacity
+                onPress={() => downloadAttachment(item.fileUrl, item.fileName)}
+              >
+                <View style={styles.svgContainer}>
+                  <Svg
+                    height="30"
+                    width="30"
+                    viewBox="0 0 100 100"
+                    style={styles.progressSvg}
+                  >
+                    <Circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      stroke="#888F05"
+                      strokeWidth="5"
+                      fill="rgba(255,255,255,0.2)"
+                      strokeDasharray={Math.PI * 2 * 45}
+                      strokeDashoffset={
+                        Math.PI *
+                        2 *
+                        45 *
+                        (1 - (downloadProgress[item.fileName] || 0))
+                      }
+                    />
+                  </Svg>
+                  <MaterialIcons
+                    name="file-download"
+                    size={30}
+                    color="#888F05"
+                    position="relative"
+                    alignSelf="flex-end"
+                  />
+                </View>
+              </TouchableOpacity>
+            )}
         </View>
       </TouchableOpacity>
     );
@@ -528,11 +799,7 @@ export default function ChatRoom({ route, navigation }) {
           }
         }}
       >
-        {uploadProgress < !100 ? (
-          <FontAwesome name="send" size={30} color="#bac308" disabled={true} />
-        ) : (
-          <FontAwesome name="send" size={30} color="#bac308" disabled={true} />
-        )}
+        <FontAwesome name="send" size={30} color="#bac308" />
       </TouchableOpacity>
     </View>
   );
@@ -557,20 +824,23 @@ export default function ChatRoom({ route, navigation }) {
           extraData={[messages.length, translatedMessages]}
         />
         {attachment && (
-          <View style={styles.attachmentPreview}>
-            <Text numberOfLines={1} ellipsizeMode="middle">
+          <View style={[styles.attachmentPreview, themeStyles[theme]]}>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="middle"
+              style={[themeStyles[theme]]}
+            >
               Selected file: {attachment.name}
             </Text>
             {uploadProgress > 0 && uploadProgress < 100 && (
               <Text
-                style={{ flex: 1, justifyContent: "center", color: "green" }}
+                style={themeStyles[theme]}
               >{`Uploading: ${uploadProgress}%`}</Text>
             )}
           </View>
         )}
         {renderInputContainer()}
       </ImageBackground>
-      {renderThemeModal()}
     </View>
   );
 }
@@ -583,8 +853,6 @@ const styles = StyleSheet.create({
   image: {
     flex: 1,
     justifyContent: "center",
-    width: "100%",
-    height: "100%",
   },
   textStyle: {
     alignSelf: "flex-end",
@@ -592,7 +860,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    // backgroundColor: "#f5f5f5",
+    backgroundColor: "#f5f5f5",
   },
   speakerIcon: {
     marginLeft: 5,
@@ -618,9 +886,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "center",
   },
-  readReceipt: {
-    marginLeft: 5,
-  },
   sentMessage: {
     alignSelf: "flex-end",
     backgroundColor: "#bac308",
@@ -628,7 +893,7 @@ const styles = StyleSheet.create({
     padding: 10,
     margin: 5,
     borderRadius: 10,
-    maxWidth: "80%",
+    maxWidth: "70%",
   },
   receivedMessage: {
     alignSelf: "flex-start",
@@ -636,7 +901,23 @@ const styles = StyleSheet.create({
     padding: 10,
     margin: 5,
     borderRadius: 10,
-    maxWidth: "80%",
+    maxWidth: "70%",
+  },
+  svgContainer: {
+    position: "relative",
+  },
+  progressSvg: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 10,
+    paddingBottom: 0,
+  },
+  attachbox: {
+    borderTopWidth: 20,
+    borderTopColor: "#7F8505",
   },
   sendButton: {
     padding: 5,
@@ -655,10 +936,10 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: "row",
-    padding: 10,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
+    padding: 5,
+    backgroundColor: "transparent",
+    margin: 10,
+    borderRadius: 22,
   },
   header: {
     flexDirection: "row",
@@ -685,22 +966,23 @@ const styles = StyleSheet.create({
   attachmentContainer: {
     flexDirection: "row",
     alignItems: "center",
+    marginTop: 5,
   },
   attachmentName: {
     flex: 1,
     fontSize: 12,
     color: "#555",
   },
-  downloadButton: {
+  msgBtn: {
     backgroundColor: "#E4E986",
+    width: "50%",
+    padding: 5,
     borderRadius: 5,
     margin: 2,
-    padding: 4,
   },
-  downloadButtonText: {
-    color: "#4B4F07", // alignSelf: "flex-end",
-    fontSize: 14,
-    marginBottom: 15,
+  BtnText: {
+    color: "black",
+    fontSize: 12,
   },
   attachButton: {
     padding: 5,
@@ -718,26 +1000,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
-  modalView: {
-    margin: 20,
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 35,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+  menuBox: {
+    padding: 2,
+    top: 1,
   },
-  modalTitle: {
-    marginBottom: 15,
-    textAlign: "center",
-    fontWeight: "bold",
-    fontSize: 18,
+  modalView: {
+    alignItems: "center",
+    marginTop: 20,
+    backgroundColor: "transparent",
+    padding: 14,
   },
   themeOption: {
     padding: 10,

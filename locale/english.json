@@ -30,7 +30,7 @@
   "page": {
     "translate": "Translate",
     "appVersion": "App version",
-    "targetLanguage": "Target language",
+    "Translateto": "Translate to",
     "appLanguage": "App language",
     "chatToSpeech": "Chat to speech"
   }

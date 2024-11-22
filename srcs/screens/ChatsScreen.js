@@ -139,10 +139,10 @@ export default function ChatsScreen({ navigation }) {
             source={
               item.otherUserProfilePic
                 ? { uri: item.otherUserProfilePic }
-                : require("../../assets/images/User.png")
+                : { uri: "https://i.ibb.co/8rQpTPZ/User.png" }
             }
             style={styles.profilePic}
-            defaultSource={require("../../assets/images/User.png")}
+            defaultSource={{ uri: "https://i.ibb.co/8rQpTPZ/User.png" }}
           />
           <View style={styles.conversationInfo}>
             <View style={styles.nameTimeContainer}>

@@ -96,15 +96,15 @@ export default function ContactsScreen({ navigation }) {
           throw new Error("Contact user not found");
         }
 
-        console.log("Starting conversation with:", phoneNumber);
-        console.log("Current user ID:", currentUser.uid);
-        console.log("Contact user ID:", contactUser._id);
+        // console.log("Starting conversation with:", phoneNumber);
+        // console.log("Current user ID:", currentUser.uid);
+        // console.log("Contact user ID:", contactUser._id);
 
         const response = await axios.post(`${API_URL}/conversations`, {
           participants: [currentUser.uid, contactUser._id],
         });
 
-        console.log("Server response");
+        // console.log("Server response");
 
         navigation.navigate("ChatRoom", {
           conversationId: response.data._id,

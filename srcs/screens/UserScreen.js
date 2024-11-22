@@ -22,7 +22,7 @@ import { auth } from "../../firebaseConfig";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTheme, themeStyles } from "./ThemeContext";
-const API_URL = "http://192.168.1.4:3000";
+const API_URL = "http://192.168.1.3:3000";
 
 export default function UserScreen({ navigation }) {
   const [user, setUser] = useState(null);
@@ -30,7 +30,7 @@ export default function UserScreen({ navigation }) {
   const [name, setName] = useState("");
   const [about, setAbout] = useState("");
   const [tempProfileImage, setTempProfileImage] = useState(null);
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -76,6 +76,7 @@ export default function UserScreen({ navigation }) {
             size={24}
             color="red"
             style={{ marginRight: 15 }}
+            alt="Logout"
           />
         </TouchableOpacity>
       ),
@@ -207,6 +208,9 @@ export default function UserScreen({ navigation }) {
       <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
         <Text style={styles.buttonText}>Save Profile</Text>
       </TouchableOpacity>
+      <Text style={styles.warn}>
+        Don't forget to save the profile after making changes!
+      </Text>
     </View>
   );
 }
@@ -245,5 +249,15 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     textAlign: "center",
+  },
+  warn: {
+    color: "black",
+    fontWeight: "bold",
+    marginTop: 12,
+    padding: 5,
+    margin: 2,
+    alignItems: "left",
+    backgroundColor: "#f5dd4b",
+    borderRadius: 10,
   },
 });

@@ -37,7 +37,7 @@
   "page": {
     "translate": "翻訳",
     "appVersion": "アプリのバージョン",
-    "targetLanguage": "目標言語",
+    "Translateto": "目標言語",
     "appLanguage": "アプリの言語",
     "chatToSpeech": "チャットからスピーチへ"
   }

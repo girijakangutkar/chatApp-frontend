@@ -37,7 +37,7 @@
   "page": {
     "translate": "अनुवाद",
     "appVersion": "ऐप संस्करण",
-    "targetLanguage": "अनुवाद करने की भाषा",
+    "Translateto": "अनुवाद करने की भाषा",
     "appLanguage": "ऐप की भाषा",
     "chatToSpeech": "संभाषण आवाजामे"
   }
